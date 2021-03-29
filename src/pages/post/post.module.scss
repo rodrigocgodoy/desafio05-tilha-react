@@ -1,1 +1,67 @@
-// TODO
+.contentImg {
+  width: 100%;
+  height: 400px;
+  margin-bottom: 80px;
+
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.post {
+  margin: 5rem auto 0;
+
+  h1 {
+    font-size: 3rem;
+    font-weight: 700;
+    margin-bottom: 24px;
+  }
+
+  & > div {
+    display: flex;
+    align-items: center;
+    & > span {
+      display: flex;
+      align-items: center;
+      & + span {
+        margin-left: 26px;
+      }
+      & > svg {
+        width: 20px;
+        height: 20px;
+        margin-right: 8px;
+      }
+      & > span {
+        color: var(--gray-400);
+        font-size: 0.875rem;
+      }
+    }
+  }
+
+  .postContent {
+    margin-top: 2rem;
+    line-height: 2rem;
+    font-size: 1.125rem;
+    color: var(--gray-100);
+
+    p, ul {
+      margin: 1.5rem 0;
+    }
+
+    ul {
+      padding-left: 1.5rem;
+
+      li {
+        margin: 0.5rem 0;
+      }
+    }
+
+    &.previewContent {
+      background: linear-gradient(var(--gray-100), transparent);
+      background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+  }
+}
