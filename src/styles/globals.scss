@@ -12,7 +12,7 @@
   --gray-400: #BBBBBB;
   --gray-900: #1A1D23;
 
-  --pink-550: #FF57B2;
+  --pink-500: #FF57B2;
 }
 
 @media (max-width: 1080px) {
@@ -38,6 +38,8 @@ body, input, textarea, select, button {
 
 button {
   cursor: pointer;
+  border: none;
+  background: transparent;
 }
 
 a {
