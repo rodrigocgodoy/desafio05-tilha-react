@@ -1,11 +1,14 @@
 import { GetStaticPaths, GetStaticProps } from 'next';
 import Head from 'next/head';
+import { useRouter } from 'next/router';
+
 import { RichText } from 'prismic-dom';
 import Prismic from '@prismicio/client';
+
 import { format } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
-import { FiCalendar, FiUser, FiClock } from 'react-icons/fi';
 
+import { FiCalendar, FiUser, FiClock } from 'react-icons/fi';
 import { getPrismicClient } from '../../services/prismic';
 
 import commonStyles from '../../styles/common.module.scss';
@@ -30,11 +33,19 @@ interface Post {
 
 interface PostProps {
   post: Post;
+  readingTime: number;
 }
 
 export default function Post({
   post: { data, first_publication_date },
+  readingTime,
 }: PostProps): JSX.Element {
+  const router = useRouter();
+
+  if (router.isFallback) {
+    return <div>Carregando...</div>;
+  }
+
   return (
     <>
       <Head>
@@ -59,10 +70,21 @@ export default function Post({
               </span>
               <span>
                 <FiClock color="#BBBBBB" />
-                <span>4 min</span>
+                <span>{readingTime} min</span>
               </span>
             </div>
-            {/* <div className={styles.postContent} dangerouslySetInnerHTML={{ __html: content }} /> */}
+            <div className={styles.postContent}>
+              {data.content?.map(content => {
+                return (
+                  <>
+                    <h2>{content.heading}</h2>
+                    {content.body.map(body => (
+                      <div dangerouslySetInnerHTML={{ __html: body.text }} />
+                    ))}
+                  </>
+                );
+              })}
+            </div>
           </article>
         </div>
       </main>
@@ -118,9 +140,24 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     },
   };
 
+  const readingTime = response.data.content.reduce((total, content) => {
+    let counter = 0;
+    if (content.heading) {
+      counter += content.heading.split('').length;
+    }
+    if (content.body) {
+      content.body.map(body => {
+        counter += RichText.asText([body]).split('').length;
+        return null;
+      });
+    }
+    return total + counter;
+  }, 0);
+
   return {
     props: {
       post,
+      readingTime: Math.round(readingTime / 200),
     },
   };
 };
