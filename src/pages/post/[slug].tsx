@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { GetStaticPaths, GetStaticProps } from 'next';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
@@ -9,6 +10,7 @@ import { format } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
 
 import { FiCalendar, FiUser, FiClock } from 'react-icons/fi';
+import Header from '../../components/Header';
 import { getPrismicClient } from '../../services/prismic';
 
 import commonStyles from '../../styles/common.module.scss';
@@ -33,14 +35,29 @@ interface Post {
 
 interface PostProps {
   post: Post;
-  readingTime: number;
 }
 
 export default function Post({
   post: { data, first_publication_date },
-  readingTime,
 }: PostProps): JSX.Element {
   const router = useRouter();
+  const readTime = useMemo(() => {
+    const readingTime = data?.content?.reduce((total, content) => {
+      let counter = 0;
+      if (content.heading) {
+        counter += content.heading.split(' ').length;
+      }
+      if (content.body) {
+        content.body.map(body => {
+          counter += RichText.asText([body]).split(' ').length;
+          return null;
+        });
+      }
+      return total + counter;
+    }, 0);
+
+    return Math.ceil(readingTime / 200);
+  }, [data]);
 
   if (router.isFallback) {
     return <div>Carregando...</div>;
@@ -51,6 +68,7 @@ export default function Post({
       <Head>
         <title>{data.title} | spacetraveling</title>
       </Head>
+      <Header />
       <main>
         <div className={styles.contentImg}>
           <img src={data.banner.url} alt={data.title} />
@@ -62,7 +80,11 @@ export default function Post({
             <div>
               <span>
                 <FiCalendar color="#BBBBBB" />
-                <span>{first_publication_date}</span>
+                <span>
+                  {format(new Date(first_publication_date), 'dd MMM yyyy', {
+                    locale: ptBR,
+                  })}
+                </span>
               </span>
               <span>
                 <FiUser color="#BBBBBB" />
@@ -70,18 +92,22 @@ export default function Post({
               </span>
               <span>
                 <FiClock color="#BBBBBB" />
-                <span>{readingTime} min</span>
+                <span>{readTime} min</span>
               </span>
             </div>
             <div className={styles.postContent}>
-              {data.content?.map(content => {
+              {data.content?.map((content, index) => {
                 return (
-                  <>
+                  <div key={`post-${index + 1}`}>
                     <h2>{content.heading}</h2>
                     {content.body.map(body => (
-                      <div dangerouslySetInnerHTML={{ __html: body.text }} />
+                      <div
+                        dangerouslySetInnerHTML={{
+                          __html: RichText.asHtml([body]),
+                        }}
+                      />
                     ))}
-                  </>
+                  </div>
                 );
               })}
             </div>
@@ -99,7 +125,13 @@ export const getStaticPaths: GetStaticPaths = async () => {
     Prismic.predicates.at('document.type', 'post'),
   ]);
 
-  posts.results?.map(post => paths.push(`/post/${post.uid}`));
+  posts.results?.map(post =>
+    paths.push({
+      params: {
+        slug: post.uid,
+      },
+    })
+  );
 
   return {
     paths,
@@ -114,37 +146,23 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
   const response = await prismic.getByUID('post', String(slug), {});
 
   const post = {
-    first_publication_date: format(
-      new Date(response.first_publication_date),
-      'dd MMM yyyy',
-      {
-        locale: ptBR,
-      }
-    ),
+    first_publication_date: response.first_publication_date,
+    uid: response.uid,
     data: {
       title: response.data.title,
+      subtitle: response.data.subtitle,
       banner: {
         url: response.data.banner.url,
       },
       author: response.data.author,
-      content: response.data.content.map(content => {
-        return {
-          heading: content.heading,
-          body: content.body.map(body => {
-            return {
-              text: RichText.asHtml([body]),
-            };
-          }),
-        };
-      }),
+      content: response.data.content,
     },
   };
 
+  console.log(JSON.stringify(response.data.content));
+
   const readingTime = response.data.content.reduce((total, content) => {
     let counter = 0;
-    if (content.heading) {
-      counter += content.heading.split('').length;
-    }
     if (content.body) {
       content.body.map(body => {
         counter += RichText.asText([body]).split('').length;
@@ -154,10 +172,12 @@ export const getStaticProps: GetStaticProps = async ({ params }) => {
     return total + counter;
   }, 0);
 
+  console.log(readingTime);
+
   return {
     props: {
       post,
-      readingTime: Math.round(readingTime / 200),
+      // readingTime: Math.round(readingTime / 200),
     },
   };
 };

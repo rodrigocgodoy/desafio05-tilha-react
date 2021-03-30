@@ -5,8 +5,8 @@ import Prismic from '@prismicio/client';
 import { format } from 'date-fns';
 import ptBR from 'date-fns/locale/pt-BR';
 import { FiCalendar, FiUser } from 'react-icons/fi';
-
 import Link from 'next/link';
+import Header from '../components/Header';
 
 import { getPrismicClient } from '../services/prismic';
 
@@ -73,6 +73,7 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
       <Head>
         <title>Home | spacetraveling</title>
       </Head>
+      <Header />
       <main className={commonStyles.container}>
         {posts.map(post => (
           <Link href={`/post/${post.uid}`} key={post.uid}>
@@ -82,7 +83,15 @@ export default function Home({ postsPagination }: HomeProps): JSX.Element {
               <div>
                 <span>
                   <FiCalendar color="#BBBBBB" />
-                  <span>{post.first_publication_date}</span>
+                  <time>
+                    {format(
+                      new Date(post.first_publication_date),
+                      'dd MMM yyyy',
+                      {
+                        locale: ptBR,
+                      }
+                    )}
+                  </time>
                 </span>
                 <span>
                   <FiUser color="#BBBBBB" />
@@ -122,13 +131,7 @@ export const getStaticProps: GetStaticProps = async () => {
   const postsPagination = postsResponse?.results?.map(post => {
     return {
       uid: post.uid,
-      first_publication_date: format(
-        new Date(post.first_publication_date),
-        'dd MMM yyyy',
-        {
-          locale: ptBR,
-        }
-      ),
+      first_publication_date: post.first_publication_date,
       data: {
         title: post.data.title,
         subtitle: post.data.subtitle,
